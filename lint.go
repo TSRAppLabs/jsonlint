@@ -9,10 +9,8 @@ import (
 
   The empty string is used as the NULL-space of this type, meaning there is no warning.
 */
-type Warning string
-
-const NilWarning = Warning("")
+type Warning []string
 
 func NewWarning(format string, e ...interface{}) Warning {
-	return Warning(fmt.Sprintf(format, e...))
+	return Warning([]string{fmt.Sprintf(format, e...)})
 }

@@ -2,6 +2,7 @@ package pbc
 
 import (
 	"fmt"
+	"strings"
 )
 
 type TypeCheck func(interface{}) Warning
@@ -17,9 +18,37 @@ func IsString(value interface{}) Warning {
 /*
   Returns warning if value is not a int
 */
-func IsInt(value interface{}) Warning {
-	_, isInt := value.(int)
-	return ifError(!isInt, "expected int")
+func IsNumber(value interface{}) Warning {
+	_, isNumber := value.(float64)
+	return ifError(!isNumber, "expected number")
+}
+
+func IsBool(value interface{}) Warning {
+	_, isBool := value.(bool)
+	return ifError(!isBool, "expected bool")
+}
+
+func IsDouble(value interface{}) Warning {
+	_, isDouble := value.(float64)
+	return ifError(!isDouble, "expected double")
+}
+
+func StringEnum(values ...string) TypeCheck {
+	return func(val interface{}) Warning {
+		str, isStr := val.(string)
+
+		if !isStr {
+			return NewWarning("expected string")
+		}
+
+		for _, v := range values {
+			if v == str {
+				return []string{}
+			}
+		}
+
+		return NewWarning("expected one of %v", values)
+	}
 }
 
 /*
@@ -31,18 +60,23 @@ func ArrayOf(check TypeCheck) TypeCheck {
 		arr, valid := value.([]interface{})
 
 		if !valid {
-			return Warning("expected array")
+			return NewWarning("expected array")
 		}
+
+		results := []string{}
 
 		for _, e := range arr {
 			warn := check(e)
 
-			if warn != NilWarning {
-				return warn
+			if warn != nil {
+				for _, msg := range warn {
+					results = append(results, fmt.Sprintf("in array %v", msg))
+				}
+
 			}
 		}
 
-		return NilWarning
+		return results
 	}
 }
 
@@ -55,8 +89,10 @@ func Object(kv map[string]TypeCheck) TypeCheck {
 		obj, isObj := val.(map[string]interface{})
 
 		if !isObj {
-			return Warning("expected obj")
+			return []string{"expected obj"}
 		}
+
+		result := []string{}
 
 		for key, check := range kv {
 			val, exists := obj[key]
@@ -65,13 +101,12 @@ func Object(kv map[string]TypeCheck) TypeCheck {
 				continue
 			}
 
-			if warn := check(val); warn != NilWarning {
-				return warn
+			for _, msg := range check(val) {
+				result = append(result, fmt.Sprintf("key:'%v' %v", key, msg))
 			}
-
 		}
 
-		return NilWarning
+		return result
 	}
 }
 
@@ -79,36 +114,83 @@ func Required(keys ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		obj, isObj := val.(map[string]interface{})
 
-		if isObj {
-			for _, key := range keys {
-				_, exists := obj[key]
-
-				if !exists {
-					return NewWarning("missing key '%v'", key)
-				}
-			}
-
-			return NilWarning
+		if !isObj {
+			return NewWarning("expected obj")
 		}
 
-		return Warning("expected obj")
+		results := []string{}
+
+		for _, key := range keys {
+			_, exists := obj[key]
+
+			if !exists {
+				results = append(results, fmt.Sprintf("missing key '%v'", key))
+			}
+		}
+
+		return results
+
+	}
+}
+
+func Mutex(keys ...string) TypeCheck {
+	return func(val interface{}) Warning {
+		obj, isObj := val.(map[string]interface{})
+
+		if !isObj {
+			return NewWarning("expected obj")
+		}
+
+		keysFound := []string{}
+
+		for _, key := range keys {
+			if _, found := obj[key]; found {
+				keysFound = append(keysFound, key)
+			}
+		}
+
+		if len(keysFound) > 1 {
+			return NewWarning("mutually exclusive keys found %v", strings.Join(keysFound, ","))
+		}
+
+		return []string{}
 	}
 }
 
 func Either(checks ...TypeCheck) TypeCheck {
 	return func(val interface{}) Warning {
+		results := []string{}
+
 		for _, check := range checks {
 			warn := check(val)
+
+			if len(warn) == 0 {
+				return []string{}
+			}
+
+			for _, msg := range warn {
+				results = append(results, msg)
+			}
+		}
+		return NewWarning("(%v)", strings.Join(results, ","))
+	}
+}
+
+func And(checks ...TypeCheck) TypeCheck {
+	return func(val interface{}) Warning {
+		results := []string{}
+		for _, check := range checks {
+			results = append(results, check(val)...)
 		}
 
-		return NilWarning
+		return results
 	}
 }
 
 func ifError(cond bool, msg string) Warning {
 	if cond {
-		return Warning(msg)
+		return NewWarning(msg)
 	} else {
-		return ""
+		return []string{}
 	}
 }
