@@ -133,6 +133,35 @@ func Required(keys ...string) TypeCheck {
 	}
 }
 
+func WhiteList(keys ...string) TypeCheck {
+	return func(val interface{}) Warning {
+		obj, isObj := val.(map[string]interface{})
+
+		if !isObj {
+			return NewWarning("expected obj")
+		}
+
+		warn := []string{}
+		for k, _ := range obj {
+			found := false
+
+			for _, key := range keys {
+				if key == k {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				warn = append(warn, NewWarning("unexpected key '%v'", k)...)
+			}
+
+		}
+
+		return warn
+	}
+}
+
 func Mutex(keys ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		obj, isObj := val.(map[string]interface{})

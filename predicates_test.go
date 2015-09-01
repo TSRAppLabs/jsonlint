@@ -191,3 +191,21 @@ func TestAndMissingKey(t *testing.T) {
 		t.Errorf("Expected one warning: %v", warn)
 	}
 }
+
+func TestWhiteListTrivial(t *testing.T) {
+	check := WhiteList("tmp")
+
+	warn := check(map[string]interface{}{
+		"hello": 1,
+	})
+
+	if len(warn) == 1 {
+		expected := "unexpected key 'hello'"
+		if warn[0] != expected {
+			t.Errorf("Expected '%v', but got '%v'", expected, warn[0])
+		}
+
+	} else {
+		t.Errorf("Expected one warning: %v", warn)
+	}
+}
