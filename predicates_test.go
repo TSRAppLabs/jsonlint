@@ -1,4 +1,4 @@
-package pbc
+package jsonlint
 
 import "testing"
 
