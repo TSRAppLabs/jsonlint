@@ -11,6 +11,9 @@ import (
 */
 type Warning []string
 
+/*
+  Creates a new Warning with printf formatting
+*/
 func NewWarning(format string, e ...interface{}) Warning {
 	return Warning([]string{fmt.Sprintf(format, e...)})
 }

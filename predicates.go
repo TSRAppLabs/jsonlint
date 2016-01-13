@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+/*
+  A TypeCheck will return many warnings about what it's given
+*/
 type TypeCheck func(interface{}) Warning
 
 /*
@@ -23,16 +26,25 @@ func IsNumber(value interface{}) Warning {
 	return ifError(!isNumber, "expected number")
 }
 
+/*
+  Returns warning if value is a bool
+*/
 func IsBool(value interface{}) Warning {
 	_, isBool := value.(bool)
 	return ifError(!isBool, "expected bool")
 }
 
+/*
+  Returns warning if value is a float
+*/
 func IsDouble(value interface{}) Warning {
 	_, isDouble := value.(float64)
 	return ifError(!isDouble, "expected double")
 }
 
+/*
+  Returns a check for a value to be a string and is contained in the input values
+*/
 func StringEnum(values ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		str, isStr := val.(string)
@@ -110,6 +122,9 @@ func Object(kv map[string]TypeCheck) TypeCheck {
 	}
 }
 
+/*
+  Returns that the checked value is a object, and that it has the specified keys
+*/
 func Required(keys ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		obj, isObj := val.(map[string]interface{})
@@ -133,6 +148,9 @@ func Required(keys ...string) TypeCheck {
 	}
 }
 
+/*
+  Returns that the checked value has at least one of the input keys
+*/
 func WhiteList(keys ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		obj, isObj := val.(map[string]interface{})
@@ -162,6 +180,9 @@ func WhiteList(keys ...string) TypeCheck {
 	}
 }
 
+/*
+  Returns that the checked value is an object, and that has one or none of the input keys
+*/
 func Mutex(keys ...string) TypeCheck {
 	return func(val interface{}) Warning {
 		obj, isObj := val.(map[string]interface{})
@@ -186,6 +207,9 @@ func Mutex(keys ...string) TypeCheck {
 	}
 }
 
+/*
+  Returns a checker, which only needs to satisfy one the the input checks
+*/
 func Either(checks ...TypeCheck) TypeCheck {
 	return func(val interface{}) Warning {
 		results := []string{}
@@ -205,6 +229,9 @@ func Either(checks ...TypeCheck) TypeCheck {
 	}
 }
 
+/*
+  Returns a checker, which must satisfy all input checkers
+*/
 func And(checks ...TypeCheck) TypeCheck {
 	return func(val interface{}) Warning {
 		results := []string{}
